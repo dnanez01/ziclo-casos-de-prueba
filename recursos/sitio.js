@@ -220,10 +220,6 @@
       h += '<button type="button" class="why t" data-act="razon" aria-expanded="' + S.razon + '">ver por qué</button>';
       if (S.razon) h += '<div class="razon in">' + (raz ? (raz.titulo ? '<strong>' + esc(raz.titulo) + '.</strong> ' : '') + md(raz.texto) : 'Necesita a una persona frente al teléfono.') + '</div>';
     }
-    h += '</div><div><h2 class="lbl">Captura</h2>';
-    h += r.caps.length ? '<div class="caps">' + r.caps.map(function (c, i) {
-      return '<a class="cap t" href="' + esc(c) + '" target="_blank" rel="noopener" title="Abrir la captura ' + (i + 1) + '"><img src="' + esc(c) + '" alt="Captura ' + (i + 1) + ' de ' + esc(r.id) + '" loading="lazy"></a>';
-    }).join('') + '</div>' : '<span class="muted">Sin capturas</span>';
     return h + '</div></aside></section>';
   }
 
