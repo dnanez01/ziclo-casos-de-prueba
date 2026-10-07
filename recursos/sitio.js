@@ -6,6 +6,8 @@
   var ORDER = ['Pasa', 'Falla', 'Observación', 'Bloqueado', 'Pendiente'];
   var LBL = { 'Pasa': 'Exitoso', 'Falla': 'Fallido', 'Observación': 'Bajo observación', 'Bloqueado': 'Bloqueado', 'Pendiente': 'Pendiente' };
   var KEY = { 'Pasa': 'ok', 'Falla': 'fail', 'Observación': 'warn', 'Bloqueado': 'block', 'Pendiente': 'pend' };
+  var PRIOS = ['Alta', 'Media', 'Baja'];
+  var PRIO_TXT = { 'Alta': 'Lo que el vendedor usa a diario: si falla, frena la venta o el cobro', 'Media': 'Funciones importantes que tienen otra salida', 'Baja': 'Textos, presentación y detalles que no frenan el trabajo' };
   var AUTO = [['Automatizado', 'done', 'var(--ok-fill)'], ['Automatizable', 'yes', 'var(--accent)'], ['No automatizable', 'no', 'var(--auto-no)']];
   var ICONS = {
     login: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3',
@@ -32,22 +34,24 @@
   function load(k) { try { return localStorage.getItem('qa-' + k); } catch (e) { return null; } }
   function save(k, v) { try { localStorage.setItem('qa-' + k, v); } catch (e) { /* sin almacenamiento */ } }
   function tag(st) { return '<span class="tag k-' + (KEY[st] || 'pend') + '"><i></i>' + esc(LBL[st] || st) + '</span>'; }
+  function prioTag(p) { return '<span class="prio p-' + esc((p || 'Media').toLowerCase()) + '">' + esc(p || 'Media') + '</span>'; }
   function autoCls(a) { return a === 'Automatizado' ? 'done' : a === 'Automatizable' ? 'yes' : ''; }
   function sq(color) { return '<span class="sq" style="background:' + color + '"></span>'; }
   function fill(st) { return 'var(--' + KEY[st] + '-fill)'; }
 
   var MODS = D.modulos.map(function (m) {
     var c = {}; ORDER.forEach(function (k) { c[k] = 0; });
-    var a = { done: 0, yes: 0, no: 0 };
+    var a = { done: 0, yes: 0, no: 0 }, p = { Alta: 0, Media: 0, Baja: 0 };
     m.casos.forEach(function (r) {
+      p[r.prio]++;
       c[r.estado] = (c[r.estado] || 0) + 1;
       a[r.auto === 'Automatizado' ? 'done' : r.auto === 'Automatizable' ? 'yes' : 'no']++;
     });
-    return { clave: m.clave, nombre: m.nombre, desc: m.descripcion, casos: m.casos, total: m.casos.length, c: c, a: a };
+    return { clave: m.clave, nombre: m.nombre, desc: m.descripcion, casos: m.casos, total: m.casos.length, c: c, a: a, p: p };
   });
 
   var S = {
-    view: 'report', mod: null, sel: null, filtro: 'Todos', autoF: 'Todas', q: '', per: 10, page: 1,
+    view: 'report', mod: null, sel: null, filtro: 'Todos', estF: 'Todos', autoF: 'Todas', q: '', per: 10, page: 1,
     collapsed: {}, razon: false, mini: load('mini') === '1', theme: load('theme') === 'light' ? 'light' : 'dark'
   };
   var app = document.getElementById('app');
@@ -140,7 +144,7 @@
   function filtered(m) {
     var q = S.q.toLowerCase().trim();
     return m.casos.filter(function (r) {
-      return (S.filtro === 'Todos' || r.estado === S.filtro) && (S.autoF === 'Todas' || r.auto === S.autoF) &&
+      return (S.filtro === 'Todos' || r.prio === S.filtro) && (S.estF === 'Todos' || r.estado === S.estF) && (S.autoF === 'Todas' || r.auto === S.autoF) &&
         (!q || r.id.toLowerCase().indexOf(q) >= 0 || plain(r.que).toLowerCase().indexOf(q) >= 0);
     });
   }
@@ -151,17 +155,19 @@
     h += '<div class="avance in"><div class="avance-top"><span>' + ej + ' de ' + m.total + ' casos ejecutados</span><b>' + pctOf(ej, m.total) + '%</b></div>' +
       '<div class="segs">' + segs(m.c, m.total, 'seg') + '</div><div class="stats">' +
       ORDER.map(function (k) { return '<span>' + sq(fill(k)) + LBL[k] + ' <b>' + m.c[k] + '</b></span>'; }).join('') + '</div></div>';
-    h += '<section class="card card-flat in"><div class="tabs" role="tablist" aria-label="Filtrar por estado">' +
-      ['Todos'].concat(ORDER).map(function (k) {
+    h += '<section class="card card-flat in"><div class="tabs" role="tablist" aria-label="Filtrar por prioridad">' +
+      ['Todos'].concat(PRIOS).map(function (k) {
         var on = k === S.filtro;
         return '<button type="button" role="tab" aria-selected="' + on + '" class="tab t' + (on ? ' on' : '') + '" data-act="filtro" data-v="' + esc(k) + '">' +
-          (k === 'Todos' ? 'Todos' : LBL[k]) + '<span class="n t">' + (k === 'Todos' ? m.total : m.c[k]) + '</span></button>';
+          (k === 'Todos' ? 'Todos' : 'Prioridad ' + k.toLowerCase()) + '<span class="n t">' + (k === 'Todos' ? m.total : m.p[k]) + '</span></button>';
       }).join('') + '</div>';
-    var active = S.filtro !== 'Todos' || S.autoF !== 'Todas' || !!S.q;
+    var active = S.filtro !== 'Todos' || S.estF !== 'Todos' || S.autoF !== 'Todas' || !!S.q;
     h += '<div class="filters"><label class="field grow">Buscar caso<span class="search">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
       '<input id="q" type="search" placeholder="Nombre o ID del caso, ej. huella" value="' + esc(S.q) + '"></span></label>' +
-      '<label class="field">Automatización<select id="autoF" class="sel">' +
+      '<label class="field">Estado<select id="estF" class="sel">' +
+      ['Todos'].concat(ORDER).map(function (o) { return '<option value="' + esc(o) + '"' + (o === S.estF ? ' selected' : '') + '>' + (o === 'Todos' ? 'Todos' : LBL[o]) + '</option>'; }).join('') +
+      '</select></label><label class="field">Automatización<select id="autoF" class="sel">' +
       ['Todas', 'Automatizado', 'Automatizable', 'No automatizable'].map(function (o) { return '<option value="' + o + '"' + (o === S.autoF ? ' selected' : '') + '>' + o + '</option>'; }).join('') +
       '</select></label>' + (active ? '<button type="button" class="link-btn t fade" data-act="clear">Limpiar filtros</button>' : '') + '</div>';
     h += '<div class="row row-head"><span class="hide-sm">ID</span><span>Qué se prueba</span><span>Estado</span><span class="hide-md">Automatización</span><span class="hide-md">Última ejecución</span><span class="hide-sm"></span></div>';
@@ -169,15 +175,15 @@
     var rows = filtered(m), per = S.per, pages = Math.max(1, Math.ceil(rows.length / per));
     S.page = Math.min(Math.max(S.page, 1), pages);
     var pl = rows.slice((S.page - 1) * per, S.page * per), secs = [];
-    pl.forEach(function (r) { if (secs.indexOf(r.seccion) < 0) secs.push(r.seccion); });
+    pl.forEach(function (r) { if (secs.indexOf(r.prio) < 0) secs.push(r.prio); });
     secs.forEach(function (name) {
-      var g = pl.filter(function (r) { return r.seccion === name; }), open = !S.collapsed[name];
+      var g = pl.filter(function (r) { return r.prio === name; }), open = !S.collapsed[name];
       h += '<div><button type="button" class="grp t" data-act="grp" data-v="' + esc(name) + '" aria-expanded="' + open + '">' +
         '<svg class="t" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' +
-        '<span>' + esc(name || 'Sin sección') + '</span><span class="n">' + g.length + '</span></button>';
+        '<span>Prioridad ' + esc(name.toLowerCase()) + '</span><span class="n">' + g.length + '</span><span class="grp-d hide-sm">' + esc(PRIO_TXT[name] || '') + '</span></button>';
       if (open) g.forEach(function (r) {
         h += '<a href="#/' + esc(m.clave) + '/' + esc(r.id) + '" class="row case t in' + (r.id === S.sel ? ' sel' : '') + '" style="text-decoration:none">' +
-          '<span class="id hide-sm">' + esc(r.id) + '</span><span class="que">' + md(r.que) + '</span><span>' + tag(r.estado) + '</span>' +
+          '<span class="id hide-sm">' + esc(r.id) + '</span><span class="que">' + md(r.que) + (r.seccion ? '<small class="sec">' + esc(r.seccion) + '</small>' : '') + '</span><span>' + tag(r.estado) + '</span>' +
           '<span class="auto hide-md ' + autoCls(r.auto) + '">' + esc(r.auto) + '</span>' +
           '<span class="fecha hide-md' + (r.fecha ? '' : ' no') + '">' + (r.fecha ? fmt(r.fecha) : 'Sin ejecutar') + '</span>' +
           '<span class="chev t hide-sm">' + CHEV_R + '</span></a>';
@@ -208,7 +214,7 @@
       '<span class="pos">' + (idx + 1) + ' / ' + n + '</span>' +
       '<a href="#/' + esc(m.clave) + '/' + esc(next.id) + '" class="pg t" aria-label="Caso siguiente">' + CHEV_R + '</a></div></header>';
     h += '<section class="detail in"><div class="dmain"><h1>' + md(r.que) + '</h1>' +
-      '<div class="strip"><div><small>Sección</small><b>' + esc(r.seccion || 'Sin sección') + '</b></div><div><small>Última ejecución</small><b>' + (r.fecha ? fmt(r.fecha) : 'Sin ejecutar') + '</b></div></div>' +
+      '<div class="strip"><div><small>Prioridad</small><b>' + prioTag(r.prio) + '</b></div><div><small>Sección</small><b>' + esc(r.seccion || 'Sin sección') + '</b></div><div><small>Última ejecución</small><b>' + (r.fecha ? fmt(r.fecha) : 'Sin ejecutar') + '</b></div></div>' +
       '<div class="blk"><h2 class="lbl">Pasos</h2><ol class="pasos">' +
       r.pasos.map(function (p, i) { return '<li><span class="n">' + (i + 1) + '</span><span class="tx">' + md(p) + '</span></li>'; }).join('') + '</ol></div>';
     if (r.datos) h += '<div class="blk" style="gap:10px"><h2 class="lbl">Datos</h2><div class="datos">' + md(r.datos) + '</div></div>';
@@ -235,7 +241,7 @@
     var prevView = S.view + S.sel;
     if (!m) { S.view = 'report'; }
     else {
-      if (S.mod !== m.clave) { S.mod = m.clave; S.filtro = 'Todos'; S.autoF = 'Todas'; S.q = ''; S.page = 1; S.collapsed = {}; S.sel = null; }
+      if (S.mod !== m.clave) { S.mod = m.clave; S.filtro = 'Todos'; S.estF = 'Todos'; S.autoF = 'Todas'; S.q = ''; S.page = 1; S.collapsed = {}; S.sel = null; }
       var c = p[1] && m.casos.filter(function (x) { return x.id === p[1]; })[0];
       if (c) { if (S.sel !== c.id) S.razon = false; S.view = 'detail'; S.sel = c.id; } else S.view = 'list';
     }
@@ -250,7 +256,7 @@
     if (a === 'side') { S.mini = !S.mini; save('mini', S.mini ? '1' : '0'); }
     else if (a === 'theme') { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save('theme', S.theme); }
     else if (a === 'filtro') { S.filtro = v; S.page = 1; }
-    else if (a === 'clear') { S.filtro = 'Todos'; S.autoF = 'Todas'; S.q = ''; S.page = 1; }
+    else if (a === 'clear') { S.filtro = 'Todos'; S.estF = 'Todos'; S.autoF = 'Todas'; S.q = ''; S.page = 1; }
     else if (a === 'grp') { S.collapsed[v] = !S.collapsed[v]; }
     else if (a === 'page') { S.page += Number(v); }
     else if (a === 'razon') { S.razon = !S.razon; }
@@ -265,7 +271,8 @@
     if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (er) { /* sin cursor */ } }
   });
   app.addEventListener('change', function (e) {
-    if (e.target.id === 'autoF') { S.autoF = e.target.value; S.page = 1; render(); }
+    if (e.target.id === 'estF') { S.estF = e.target.value; S.page = 1; render(); }
+    else if (e.target.id === 'autoF') { S.autoF = e.target.value; S.page = 1; render(); }
     else if (e.target.id === 'per') { S.per = Number(e.target.value); S.page = 1; render(); }
   });
   window.addEventListener('hashchange', route);
