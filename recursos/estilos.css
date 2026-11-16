@@ -237,3 +237,24 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:var(
 .prio.p-alta{color:var(--fail-fill)}.prio.p-media{color:var(--warn-fill)}.prio.p-baja{color:var(--muted)}
 .que .sec{display:block;font-size:12px;color:var(--muted);margin-top:2px;font-weight:400}
 .grp-d{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;text-align:left}
+
+/* Selector Mobile / Web: control segmentado con una pastilla que se desliza */
+:root{--seg-track:#0C0E12;--seg-thumb:#262B35;--seg-thumb-bd:#363C48}
+:root[data-theme="light"]{--seg-track:#EEF0F3;--seg-thumb:#FFFFFF;--seg-thumb-bd:#DCE0E6}
+.plat{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--seg-track);border:1px solid var(--border)}
+.plat::before{content:"";position:absolute;top:4px;left:4px;width:calc(50% - 6px);height:calc(100% - 8px);border-radius:10px;background:var(--seg-thumb);border:1px solid var(--seg-thumb-bd);box-shadow:0 1px 2px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.10);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.plat[data-plat="web"]::before{transform:translateX(calc(100% + 4px))}
+.plat-btn{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:38px;padding:0 4px;border-radius:10px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;overflow:hidden}
+.plat-btn svg{flex:none}
+.plat-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.plat-btn:hover{color:var(--text)}
+.plat-btn.on{color:var(--text)}
+.plat-btn.on svg{color:var(--accent)}
+.plat-n{flex:none;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:600;color:var(--muted);opacity:.8}
+.plat-btn.on .plat-n{color:var(--accent);opacity:1}
+.mini .plat{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+.mini .plat::before{width:calc(100% - 8px);height:calc(50% - 6px)}
+.mini .plat[data-plat="web"]::before{transform:translateY(calc(100% + 4px))}
+.mini .plat-lbl,.mini .plat-n{display:none}
+@media (max-width:860px){.mini .plat{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:none}.mini .plat::before{width:calc(50% - 6px);height:calc(100% - 8px)}.mini .plat[data-plat="web"]::before{transform:translateX(calc(100% + 4px))}.mini .plat-lbl,.mini .plat-n{display:inline}.plat-btn{min-height:44px}}
+@media (prefers-reduced-motion:reduce){.plat::before{transition:none}}

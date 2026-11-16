@@ -1,8 +1,11 @@
 /* Sitio de casos de prueba de Ziclo · Santa Teresa.
-   Lee window.QA_DATOS, que escribe generar_sitio.py en recursos/datos.js. */
+   Lee window.QA_DATOS, que escribe generar_sitio.py en recursos/datos.js.
+   Tiene dos lados, Mobile (la app) y Web (el portal), cada uno con su tablero y sus módulos.
+   Rutas: #/ y #/<módulo>/<caso> para Mobile; #/web y #/web/<módulo>/<caso> para Web. */
 (function () {
   'use strict';
   var D = window.QA_DATOS || { modulos: [], razones: {} };
+  var PLATS = D.plataformas || [{ clave: 'mobile', nombre: 'Mobile', descripcion: 'App Ziclo en el teléfono' }];
   var ORDER = ['Pasa', 'Falla', 'Observación', 'Bloqueado', 'Pendiente'];
   var LBL = { 'Pasa': 'Exitoso', 'Falla': 'Fallido', 'Observación': 'Bajo observación', 'Bloqueado': 'Bloqueado', 'Pendiente': 'Pendiente' };
   var KEY = { 'Pasa': 'ok', 'Falla': 'fail', 'Observación': 'warn', 'Bloqueado': 'block', 'Pendiente': 'pend' };
@@ -16,7 +19,19 @@
     cobranzas: 'M2 7h20v12H2zM2 11h20M6 15h4',
     pedidos: 'M9 2h6v4H9zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 12h6M9 16h4',
     'punto-de-venta': 'M3 9l1.5-5h15L21 9M3 9h18M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v9h14v-9M10 21v-5h4v5',
-    'mi-cuota': 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01'
+    'mi-cuota': 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
+    'roles-y-menu': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    ventas: 'M3 17l6-6 4 4 8-8M14 7h7v7',
+    contraloria: 'M9 2h6v4H9zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 14l2 2 4-4',
+    administracion: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+    comercial: 'M3 7h18v13H3zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M3 13h18',
+    rutero: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+    'atencion-al-cliente': 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+    solicitudes: 'M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1'
+  };
+  var PLAT_IC = {
+    mobile: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',
+    web: 'M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8 21h8M12 17v4'
   };
   var ICON_DEF = 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6';
   var SUN = 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4';
@@ -39,7 +54,7 @@
   function sq(color) { return '<span class="sq" style="background:' + color + '"></span>'; }
   function fill(st) { return 'var(--' + KEY[st] + '-fill)'; }
 
-  var MODS = D.modulos.map(function (m) {
+  var TODOS = D.modulos.map(function (m) {
     var c = {}; ORDER.forEach(function (k) { c[k] = 0; });
     var a = { done: 0, yes: 0, no: 0 }, p = { Alta: 0, Media: 0, Baja: 0 };
     m.casos.forEach(function (r) {
@@ -47,11 +62,18 @@
       c[r.estado] = (c[r.estado] || 0) + 1;
       a[r.auto === 'Automatizado' ? 'done' : r.auto === 'Automatizable' ? 'yes' : 'no']++;
     });
-    return { clave: m.clave, nombre: m.nombre, desc: m.descripcion, casos: m.casos, total: m.casos.length, c: c, a: a, p: p };
+    return { plat: m.plataforma || 'mobile', clave: m.clave, nombre: m.nombre, desc: m.descripcion, casos: m.casos, total: m.casos.length, c: c, a: a, p: p };
   });
+  /* Módulos del lado que se está viendo. Cambia en route() al pasar de Mobile a Web. */
+  var MODS = [];
+  function modsDe(plat) { return TODOS.filter(function (m) { return m.plat === plat; }); }
+  function platInfo(k) { return PLATS.filter(function (p) { return p.clave === k; })[0] || PLATS[0]; }
+  /* Enlaces: Mobile conserva las rutas de siempre (#/login) y Web va con prefijo (#/web/login). */
+  function base(plat) { return (plat || S.plat) === 'web' ? '#/web' : '#'; }
+  function href(clave, id) { return base() + '/' + esc(clave) + (id ? '/' + esc(id) : ''); }
 
   var S = {
-    view: 'report', mod: null, sel: null, filtro: 'Todos', estF: 'Todos', autoF: 'Todas', q: '', per: 10, page: 1,
+    plat: 'mobile', platAntes: null, view: 'report', mod: null, sel: null, filtro: 'Todos', estF: 'Todos', autoF: 'Todas', q: '', per: 10, page: 1,
     collapsed: {}, razon: false, mini: load('mini') === '1', theme: load('theme') === 'light' ? 'light' : 'dark'
   };
   var app = document.getElementById('app');
@@ -63,6 +85,22 @@
     }).join('');
   }
 
+  /* Selector Mobile / Web: control segmentado arriba del menú, en todas las páginas.
+     Si el módulo abierto existe en el otro lado, lleva a ese módulo; si no, a su tablero. */
+  function platSwitch() {
+    var desde = S.platAntes || S.plat;
+    var h = '<div class="plat" role="group" aria-label="Plataforma" data-plat="' + esc(desde) + '">';
+    PLATS.forEach(function (p) {
+      var on = p.clave === S.plat, mods = modsDe(p.clave);
+      var mismo = S.view !== 'report' && mods.some(function (m) { return m.clave === S.mod; });
+      var n = mods.reduce(function (a, m) { return a + m.total; }, 0);
+      var dest = base(p.clave) + '/' + (mismo ? esc(S.mod) : '');
+      h += '<a href="' + dest + '" class="plat-btn t' + (on ? ' on' : '') + '"' + (on ? ' aria-current="true"' : '') + ' title="' + esc(p.nombre + ' · ' + p.descripcion) + '">' +
+        ico(PLAT_IC[p.clave] || ICON_DEF) + '<span class="plat-lbl">' + esc(p.nombre) + '</span><span class="plat-n">' + n + '</span></a>';
+    });
+    return h + '</div>';
+  }
+
   /* Menú lateral */
   function side() {
     var rep = S.view === 'report';
@@ -70,12 +108,13 @@
       '<div class="brand-txt fade"><span class="brand-name">Ziclo</span><span class="brand-sub">Santa Teresa · QA</span></div>' +
       '<button type="button" class="icon-btn t collapse" data-act="side" aria-label="' + (S.mini ? 'Expandir menú' : 'Encoger menú') + '" title="' + (S.mini ? 'Expandir menú' : 'Encoger menú') + '">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="' + (S.mini ? 'M14 10l2 2-2 2' : 'M16 10l-2 2 2 2') + '"/></svg></button></div>' +
+      platSwitch() +
       '<nav aria-label="Navegación"><div class="nav-group"><span class="nav-title fade">General</span>' +
-      '<a href="#/" class="nav-btn t' + (rep ? ' on' : '') + '"' + (rep ? ' aria-current="page"' : '') + ' title="Reporte"><span class="nav-ic t">' + ico('M3 3v18h18M7 15l4-4 3 3 5-6') + '</span><span class="nav-lbl fade">Reporte</span></a></div>' +
+      '<a href="' + base() + '/" class="nav-btn t' + (rep ? ' on' : '') + '"' + (rep ? ' aria-current="page"' : '') + ' title="Reporte"><span class="nav-ic t">' + ico('M3 3v18h18M7 15l4-4 3 3 5-6') + '</span><span class="nav-lbl fade">Reporte</span></a></div>' +
       '<div class="nav-group"><span class="nav-title fade">Módulos</span><div class="nav-list">';
     MODS.forEach(function (m) {
       var on = !rep && m.clave === S.mod;
-      h += '<a href="#/' + esc(m.clave) + '" data-act="mod" data-mod="' + esc(m.clave) + '" class="nav-btn t' + (on ? ' on' : '') + '"' + (on ? ' aria-current="page"' : '') + ' title="' + esc(m.nombre) + '">' +
+      h += '<a href="' + href(m.clave) + '" data-act="mod" data-mod="' + esc(m.clave) + '" class="nav-btn t' + (on ? ' on' : '') + '"' + (on ? ' aria-current="page"' : '') + ' title="' + esc(m.nombre) + '">' +
         '<span class="nav-ic t">' + ico(ICONS[m.clave] || ICON_DEF) + '</span><span class="nav-lbl fade">' + esc(m.nombre) + '</span><span class="nav-count fade">' + m.total + '</span></a>';
     });
     var tl = S.theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
@@ -105,7 +144,11 @@
     var legend = ORDER.map(function (k) { return '<li>' + sq(fill(k)) + '<span class="l">' + LBL[k] + '</span><span class="v">' + tc[k] + '</span><span class="p">' + pctOf(tc[k], total) + '%</span></li>'; }).join('');
     var mini = ORDER.map(function (k) { return '<span>' + sq(fill(k)) + LBL[k] + '</span>'; }).join('');
 
-    var h = '<header class="head in"><h1>Reporte general</h1><span class="muted">Estado de todos los casos de prueba de la app, por módulo.</span></header>';
+    var web = S.plat === 'web';
+    var h = '<header class="head in"><h1>Reporte general</h1><span class="muted">' +
+      (web ? 'Estado de todos los casos de prueba del portal web, rst.dev.ziclo.io, por módulo.' : 'Estado de todos los casos de prueba de la app, por módulo.') + '</span></header>';
+    if (!MODS.length) return h + '<section class="card t in"><div class="empty"><b>Todavía no hay módulos de ' + esc(platInfo(S.plat).nombre) + '</b>' +
+      '<span>Los casos aparecen aquí cuando se agregan a la carpeta datos' + (web ? '/web' : '') + '.</span></div></section>';
     h += '<section class="kpis" aria-label="Cifras principales">' + kpis.map(function (k) {
       return '<div class="kpi t in"><span class="kpi-l">' + k[0] + '</span><span class="kpi-v">' + k[1] + '</span><span class="kpi-s">' + k[2] + '</span></div>';
     }).join('') + '</section>';
@@ -115,7 +158,7 @@
     h += '<div class="card t in"><div class="row-between"><div class="card-head"><h2>Estado por módulo</h2><span>Toca un módulo para ver sus casos</span></div><div class="mini-legend">' + mini + '</div></div><div class="mod-bars">';
     MODS.forEach(function (m) {
       var p = pctOf(m.total - m.c['Pendiente'], m.total);
-      h += '<a href="#/' + esc(m.clave) + '" data-act="mod" data-mod="' + esc(m.clave) + '" class="mod-bar t" style="text-decoration:none"><span class="stack"><b>' + esc(m.nombre) + '</b><small>' + m.total + ' casos</small></span>' +
+      h += '<a href="' + href(m.clave) + '" data-act="mod" data-mod="' + esc(m.clave) + '" class="mod-bar t" style="text-decoration:none"><span class="stack"><b>' + esc(m.nombre) + '</b><small>' + m.total + ' casos</small></span>' +
         '<span class="track">' + segs(m.c, m.total) + '</span><span class="stack r"><b>' + p + '%</b><small>ejecutado</small></span></a>';
     });
     h += '</div></div></section>';
@@ -182,7 +225,7 @@
         '<svg class="t" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' +
         '<span>Prioridad ' + esc(name.toLowerCase()) + '</span><span class="n">' + g.length + '</span><span class="grp-d hide-sm">' + esc(PRIO_TXT[name] || '') + '</span></button>';
       if (open) g.forEach(function (r) {
-        h += '<a href="#/' + esc(m.clave) + '/' + esc(r.id) + '" class="row case t in' + (r.id === S.sel ? ' sel' : '') + '" style="text-decoration:none">' +
+        h += '<a href="' + href(m.clave, r.id) + '" class="row case t in' + (r.id === S.sel ? ' sel' : '') + '" style="text-decoration:none">' +
           '<span class="id hide-sm">' + esc(r.id) + '</span><span class="que">' + md(r.que) + (r.seccion ? '<small class="sec">' + esc(r.seccion) + '</small>' : '') + '</span><span>' + tag(r.estado) + '</span>' +
           '<span class="auto hide-md ' + autoCls(r.auto) + '">' + esc(r.auto) + '</span>' +
           '<span class="fecha hide-md' + (r.fecha ? '' : ' no') + '">' + (r.fecha ? fmt(r.fecha) : 'Sin ejecutar') + '</span>' +
@@ -208,11 +251,11 @@
     var prev = nav[(idx - 1 + n) % n], next = nav[(idx + 1) % n];
     var k = KEY[r.estado] || 'pend', no = r.auto === 'No automatizable';
     var raz = D.razones[r.razon];
-    var h = '<header class="dhead in"><nav class="crumb" aria-label="Ruta"><a href="#/' + esc(m.clave) + '" class="t">' + esc(m.nombre) + '</a><span class="sl">/</span><span class="cid">' + esc(r.id) + '</span></nav>' +
+    var h = '<header class="dhead in"><nav class="crumb" aria-label="Ruta"><a href="' + href(m.clave) + '" class="t">' + esc(m.nombre) + '</a><span class="sl">/</span><span class="cid">' + esc(r.id) + '</span></nav>' +
       tag(r.estado) + '<span class="spacer"></span><div class="dnav">' +
-      '<a href="#/' + esc(m.clave) + '/' + esc(prev.id) + '" class="pg t" aria-label="Caso anterior">' + CHEV_L + '</a>' +
+      '<a href="' + href(m.clave, prev.id) + '" class="pg t" aria-label="Caso anterior">' + CHEV_L + '</a>' +
       '<span class="pos">' + (idx + 1) + ' / ' + n + '</span>' +
-      '<a href="#/' + esc(m.clave) + '/' + esc(next.id) + '" class="pg t" aria-label="Caso siguiente">' + CHEV_R + '</a></div></header>';
+      '<a href="' + href(m.clave, next.id) + '" class="pg t" aria-label="Caso siguiente">' + CHEV_R + '</a></div></header>';
     h += '<section class="detail in"><div class="dmain"><h1>' + md(r.que) + '</h1>' +
       '<div class="strip"><div><small>Prioridad</small><b>' + prioTag(r.prio) + '</b></div><div><small>Sección</small><b>' + esc(r.seccion || 'Sin sección') + '</b></div><div><small>Última ejecución</small><b>' + (r.fecha ? fmt(r.fecha) : 'Sin ejecutar') + '</b></div></div>' +
       '<div class="blk"><h2 class="lbl">Pasos</h2><ol class="pasos">' +
@@ -224,7 +267,7 @@
       '<div style="gap:8px"><h2 class="lbl">Automatización</h2><span class="auto-d ' + autoCls(r.auto) + '">' + esc(r.auto) + '</span>';
     if (no) {
       h += '<button type="button" class="why t" data-act="razon" aria-expanded="' + S.razon + '">ver por qué</button>';
-      if (S.razon) h += '<div class="razon in">' + (raz ? (raz.titulo ? '<strong>' + esc(raz.titulo) + '.</strong> ' : '') + md(raz.texto) : 'Necesita a una persona frente al teléfono.') + '</div>';
+      if (S.razon) h += '<div class="razon in">' + (raz ? (raz.titulo ? '<strong>' + esc(raz.titulo) + '.</strong> ' : '') + md(raz.texto) : (S.plat === 'web' ? 'Necesita a una persona frente al navegador.' : 'Necesita a una persona frente al teléfono.')) + '</div>';
     }
     return h + '</div></aside></section>';
   }
@@ -233,12 +276,27 @@
     document.documentElement.setAttribute('data-theme', S.theme);
     var body = S.view === 'report' ? report() : S.view === 'list' ? list() : detail();
     app.innerHTML = '<div class="shell' + (S.mini ? ' mini' : '') + '">' + side() + '<main class="main">' + body + '</main></div>';
+    /* El selector se pinta en la posición anterior y en el siguiente cuadro se desliza a la nueva. */
+    var sw = app.querySelector('.plat');
+    if (sw && S.platAntes && S.platAntes !== S.plat) {
+      void sw.offsetWidth;
+      sw.setAttribute('data-plat', S.plat);
+    }
+    S.platAntes = null;
   }
 
   function route() {
-    var p = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
+    var p = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(function (x) { return x !== ''; });
+    var plat = p[0] === 'web' ? 'web' : 'mobile';
+    if (plat === 'web') p.shift();
+    var prevView = S.plat + S.view + S.sel;
+    if (plat !== S.plat) {
+      /* Cambio de lado: se olvida el módulo abierto para que los filtros empiecen limpios. */
+      S.platAntes = S.plat; S.plat = plat; S.mod = null; S.sel = null;
+      document.title = 'Ziclo Santa Teresa · Casos de prueba' + (plat === 'web' ? ' · Web' : '');
+    }
+    MODS = modsDe(plat);
     var m = MODS.filter(function (x) { return x.clave === p[0]; })[0];
-    var prevView = S.view + S.sel;
     if (!m) { S.view = 'report'; }
     else {
       if (S.mod !== m.clave) { S.mod = m.clave; S.filtro = 'Todos'; S.estF = 'Todos'; S.autoF = 'Todas'; S.q = ''; S.page = 1; S.collapsed = {}; S.sel = null; }
@@ -246,7 +304,7 @@
       if (c) { if (S.sel !== c.id) S.razon = false; S.view = 'detail'; S.sel = c.id; } else S.view = 'list';
     }
     render();
-    if (prevView !== S.view + S.sel) window.scrollTo(0, 0);
+    if (prevView !== S.plat + S.view + S.sel) window.scrollTo(0, 0);
   }
 
   app.addEventListener('click', function (e) {
